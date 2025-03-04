@@ -1,4 +1,7 @@
 import express, { request, response } from 'express';
+import {query, validationResult, body, matchedData, checkSchema} from'express-validator';
+import {createUserValidationSchema} from './utils/validationSchemas.js';
+
 const app = express();
 app.use(express.json());
 
@@ -48,17 +51,19 @@ app.get('/api/products', (request, response) => {
     }]);
 });
 
-//Find user by name
-app.get('/api/users', (request, response) => {
-    console.log(request.query);
+//Find user by name and using validate
+app.get('/api/users', query('filter').isString().notEmpty().withMessage('Cant be empty').
+ isLength({min: 3, max: 10}).withMessage('Too short/long'), (request, response) => {    
+    const result = validationResult(request);
+    console.log(result);
     const {query: {filter, value}} = request;
 
     //When filter/value are undefined
-    if(!filter && !value)
-        return response.send(mockUser);
 
     if(filter && value)
         return response.send(mockUser.filter((user) => user[filter].includes(value)));    
+
+    return response.send(mockUser);
 });
 
 //Find user by id
@@ -82,12 +87,17 @@ app.get('/api/users/:id', findUserByID, (request, response) => {
 });
 
 //Create user
-app.post('/api/users', (request, response) => {
-    console.log(request.body);
-    const{body} = request;
+app.post('/api/users', checkSchema(createUserValidationSchema), (request, response) => {
+    //Validate data
+    const result = validationResult(request);  
+    console.log(result);
+    if(!result.isEmpty())
+        return response.status(400).send({errors: result.array()});
+    const data = matchedData(request);
+
     const newUser = {
         id: mockUser[mockUser.length - 1].id + 1,
-        ...body
+        ...data
     };
     mockUser.push(newUser);
     return response.status(201).send(newUser);
