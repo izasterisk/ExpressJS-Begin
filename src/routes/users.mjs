@@ -9,6 +9,15 @@ const router = Router();
 //Find user by name and using validate
 router.get('/api/users', query('filter').isString().notEmpty().withMessage('Cant be empty').
  isLength({min: 3, max: 10}).withMessage('Too short/long'), (request, response) => {    
+    console.log(request.session);
+    console.log(request.session.id);            
+    request.sessionStore.get(request.session.id, (err, sessionData) => {
+        if(err){
+            console.log(err);
+            throw err;
+        }
+        console.log(sessionData);
+    });
     const result = validationResult(request);
     console.log(result);
     const {query: {filter, value}} = request;

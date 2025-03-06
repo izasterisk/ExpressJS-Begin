@@ -7,11 +7,17 @@ import { findUserByID } from 'file:///C:/Users/Admin/source/repos/ExpressJS-Begi
 const router = Router();
 
 router.get('/api/products', (request, response) => {
-    response.send([{
-        id: 121,
-        name: 'Sparrow',
-        price: 69
-    }]);
+    console.log(request.headers.cookie);
+    console.log(request.cookies);
+    console.log(request.signedCookies.name);
+    if(request.signedCookies.name && request.signedCookies.name === 'express') {
+        response.send([{
+            id: 121,
+            name: 'Sparrow',
+            price: 69
+        }]);
+    }
+    return response.status(401).send('Unauthorized');
 });
 
 export default router;
