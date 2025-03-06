@@ -1,10 +1,12 @@
 export const mockUser = [{
     id: 1,
-    username: 'Wxrdie',
-    displayName: 'Pham Nam Hai'
+    username: 'wxrdie',
+    displayName: 'Pham Nam Hai',
+    password: '123'
 },
 {
     id: 2,
-    username: 'MCK',
-    displayName: 'A Long'
+    username: 'mck',
+    displayName: 'A Long',
+    password: '123'
 }];

@@ -6,6 +6,7 @@ import { findUserByID } from 'file:///C:/Users/Admin/source/repos/ExpressJS-Begi
 import routes from './routes/index.mjs';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
+import passport from 'passport';
 
 const app = express();
 app.use(express.json());
@@ -18,6 +19,8 @@ app.use(session({
         maxAge: 60000 * 60
     }
 }));
+app.use(passport.initialize());
+app.use(passport.session());
 app.use(routes);
 
 // const loggingMiddleware = (request, response, next) => {
@@ -38,7 +41,52 @@ app.get("/", (request, response) => {
     console.log(request.session.id);
     request.session.visited = true;
     response.cookie('name', 'express', {maxAge: 60000 * 60, signed: true});
-    response.send('Haizz');
+    response.send('Haizz'); 
+});
+
+app.post("/api/auth", (request, response) => {
+    const {body: {username, password}} = request;
+    const findUser = mockUser.find(user => user.username === username);
+    if(!findUser || findUser.password !== password) {
+        response.status(401).send('Wrong username or password');
+        return;
+    }
+    request.session.user = findUser;
+    return response.status(200).send(findUser);
+});
+
+app.get("/api/auth/status", (request, response) => {
+    request.sessionStore.get(request.session.id, (err, session) => {
+        if(err) {
+            console.log(err);
+            throw err;
+        }
+        console.log(session);
+    });
+    return request.session.user ? 
+        response.status(200).send(request.session.user) : response.status(401).send('Unauthorized');
+
+});
+
+app.post("/api/cart", (request, response) => {
+    if(!request.session.user) {
+        return response.status(401).send('Unauthorized');
+    }
+    const {body: item} = request;
+    const {cart} = request.session;
+    if(cart) {
+        cart.push(item);
+    }else{
+        request.session.cart = [item];
+    }
+    return response.status(201).send(item);
+});
+
+app.get("/api/cart", (request, response) => {
+    if(!request.session.user) {
+        return response.status(401).send('Unauthorized');
+    }
+    return response.status(200).send(request.session.cart ?? []);
 });
 
 app.listen(PORT, () => {
