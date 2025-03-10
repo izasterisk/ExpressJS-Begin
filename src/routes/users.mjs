@@ -3,6 +3,7 @@ import {query, validationResult, body, matchedData, checkSchema} from'express-va
 import {createUserValidationSchema} from '../utils/validationSchemas.mjs';
 import { mockUser } from 'file:///C:/Users/Admin/source/repos/ExpressJS-Begin/src/utils/constants.mjs';
 import { findUserByID } from 'file:///C:/Users/Admin/source/repos/ExpressJS-Begin/src/utils/middlewares.mjs';
+import {User} from '../mongoose/schemas/user.mjs';
 
 const router = Router();
 
@@ -31,21 +32,37 @@ router.get('/api/users', query('filter').isString().notEmpty().withMessage('Cant
 });
 
 //Create user
-router.post('/api/users', checkSchema(createUserValidationSchema), (request, response) => {
-    //Validate data
-    const result = validationResult(request);  
-    console.log(result);
+router.post('/api/users', checkSchema(createUserValidationSchema), async (request, response) => {
+    const {body} = request;
+    const newUser = new User(body);
+    const result = validationResult(request);
     if(!result.isEmpty())
-        return response.status(400).send({errors: result.array()});
+        return response.status(400).send(result.array());
     const data = matchedData(request);
-
-    const newUser = {
-        id: mockUser[mockUser.length - 1].id + 1,
-        ...data
-    };
-    mockUser.push(newUser);
-    return response.status(201).send(newUser);
+    console.log(data); 
+    try{
+        const savedUser = await newUser.save();
+        return response.status(201).send(savedUser);
+    }catch(err){
+        console.log(err);
+        return response.status(500);
+    }
 });
+// router.post('/api/users', checkSchema(createUserValidationSchema), (request, response) => {
+//     //Validate data
+//     const result = validationResult(request);  
+//     console.log(result);
+//     if(!result.isEmpty())
+//         return response.status(400).send({errors: result.array()});
+//     const data = matchedData(request);
+
+//     const newUser = {
+//         id: mockUser[mockUser.length - 1].id + 1,
+//         ...data
+//     };
+//     mockUser.push(newUser);
+//     return response.status(201).send(newUser);
+// });
 
 //Find user by id
 router.get('/api/users/:id', findUserByID, (request, response) => {    

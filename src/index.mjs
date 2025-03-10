@@ -7,8 +7,17 @@ import routes from './routes/index.mjs';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
 import passport from 'passport';
+import mongoose from 'mongoose';
+import './strategies/local-strategy.mjs';
 
 const app = express();
+
+mongoose.connect("mongodb://localhost:27017/ExpressJSBegin").then(() => {
+    console.log('Connected to MongoDB');
+}).catch((err) => {
+    console.log(err);
+});
+
 app.use(express.json());
 app.use(cookieParser("helloworld"));
 app.use(session({
@@ -22,6 +31,7 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 app.use(routes);
+
 
 // const loggingMiddleware = (request, response, next) => {
 //     console.log(`${request.method} - ${request.url}`);
@@ -44,29 +54,29 @@ app.get("/", (request, response) => {
     response.send('Haizz'); 
 });
 
-app.post("/api/auth", (request, response) => {
-    const {body: {username, password}} = request;
-    const findUser = mockUser.find(user => user.username === username);
-    if(!findUser || findUser.password !== password) {
-        response.status(401).send('Wrong username or password');
-        return;
-    }
-    request.session.user = findUser;
-    return response.status(200).send(findUser);
-});
+// app.post("/api/auth", (request, response) => {
+//     const {body: {username, password}} = request;
+//     const findUser = mockUser.find(user => user.username === username);
+//     if(!findUser || findUser.password !== password) {
+//         response.status(401).send('Wrong username or password');
+//         return;
+//     }
+//     request.session.user = findUser;
+//     return response.status(200).send(findUser);
+// });
 
-app.get("/api/auth/status", (request, response) => {
-    request.sessionStore.get(request.session.id, (err, session) => {
-        if(err) {
-            console.log(err);
-            throw err;
-        }
-        console.log(session);
-    });
-    return request.session.user ? 
-        response.status(200).send(request.session.user) : response.status(401).send('Unauthorized');
+// app.get("/api/auth/status", (request, response) => {
+//     request.sessionStore.get(request.session.id, (err, session) => {
+//         if(err) {
+//             console.log(err);
+//             throw err;
+//         }
+//         console.log(session);
+//     });
+//     return request.session.user ? 
+//         response.status(200).send(request.session.user) : response.status(401).send('Unauthorized');
 
-});
+// });
 
 app.post("/api/cart", (request, response) => {
     if(!request.session.user) {
@@ -87,6 +97,30 @@ app.get("/api/cart", (request, response) => {
         return response.status(401).send('Unauthorized');
     }
     return response.status(200).send(request.session.cart ?? []);
+});
+
+app.post("/api/auth", passport.authenticate("local"), (request, response) => {
+    response.status(200).send(request.user);
+});
+
+app.get("/api/auth/status", (request, response) => {
+    console.log(request.user);
+    if(request.user) {
+        return response.status(200).send(request.user);
+    }
+    return response.status(401).send('Unauthorized');
+});
+
+app.post("/api/auth/logout", (request, response) => {
+    if(!request.user) {
+        return response.status(401).send('Unauthorized');
+    }
+    request.logout((err) => {
+        if(err) {
+            return response.status(500).send('Logout failed');
+        }
+    });
+    response.status(200).send('Logout successfully');
 });
 
 app.listen(PORT, () => {
