@@ -4,6 +4,7 @@ import {createUserValidationSchema} from '../utils/validationSchemas.mjs';
 import { mockUser } from 'file:///C:/Users/Admin/source/repos/ExpressJS-Begin/src/utils/constants.mjs';
 import { findUserByID } from 'file:///C:/Users/Admin/source/repos/ExpressJS-Begin/src/utils/middlewares.mjs';
 import {User} from '../mongoose/schemas/user.mjs';
+import {hashPassword} from '../utils/helpers.mjs';
 
 const router = Router();
 
@@ -33,13 +34,15 @@ router.get('/api/users', query('filter').isString().notEmpty().withMessage('Cant
 
 //Create user
 router.post('/api/users', checkSchema(createUserValidationSchema), async (request, response) => {
-    const {body} = request;
-    const newUser = new User(body);
+    const {body} = request;    
     const result = validationResult(request);
     if(!result.isEmpty())
         return response.status(400).send(result.array());
     const data = matchedData(request);
     console.log(data); 
+    data.password = await hashPassword(data.password);
+    console.log(data); 
+    const newUser = new User(data);
     try{
         const savedUser = await newUser.save();
         return response.status(201).send(savedUser);
